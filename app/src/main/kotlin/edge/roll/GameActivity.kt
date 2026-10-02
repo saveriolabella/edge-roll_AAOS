@@ -25,6 +25,21 @@ class GameActivity : AndroidApplication() {
     private val isTv by lazy { packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private var hasAudioFocus = false
+    private val soundEnabledInterceptor: (Boolean) -> Boolean = { requested ->
+        if (!requested) false else requestAudioFocus()
+    }
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
+        when (change) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                hasAudioFocus = false
+                SoundFx.pauseAll()
+                if (Settings.soundEnabled) {
+                    Settings.setSoundEnabled(false)
+                    runOnUiThread { chrome.refreshSoundToggles() }
+                }
+            }
+        }
+    }
     private val audioFocusRequest by lazy {
         AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(
@@ -33,7 +48,7 @@ class GameActivity : AndroidApplication() {
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build(),
             )
-            .setOnAudioFocusChangeListener { _ -> }
+            .setOnAudioFocusChangeListener(audioFocusChangeListener)
             .build()
     }
 
@@ -89,10 +104,15 @@ class GameActivity : AndroidApplication() {
 
     override fun onResume() {
         super.onResume()
-        if (Settings.soundEnabled) requestAudioFocus()
+        Settings.setSoundEnabledInterceptor(soundEnabledInterceptor)
+        if (Settings.soundEnabled && !requestAudioFocus()) {
+            Settings.setSoundEnabled(false)
+            chrome.refreshSoundToggles()
+        }
     }
 
     override fun onPause() {
+        Settings.setSoundEnabledInterceptor(null)
         SoundFx.pauseAll()
         abandonAudioFocus()
         super.onPause()
@@ -123,11 +143,11 @@ class GameActivity : AndroidApplication() {
         return super.dispatchKeyEvent(event)
     }
 
-    private fun requestAudioFocus() {
-        if (hasAudioFocus) return
+    private fun requestAudioFocus(): Boolean {
+        if (hasAudioFocus) return true
         val result = audioManager.requestAudioFocus(audioFocusRequest)
         hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-        if (!hasAudioFocus) Settings.setSoundEnabled(false)
+        return hasAudioFocus
     }
 
     private fun abandonAudioFocus() {

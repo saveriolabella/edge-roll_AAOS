@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 /** Persistent player-facing options. Safe to read from the GL thread (values are @Volatile). */
 object Settings {
     private lateinit var prefs: SharedPreferences
+    @Volatile private var soundEnabledInterceptor: ((Boolean) -> Boolean)? = null
 
     /** Master mute for all procedural sound effects. Read from the GL thread. */
     @Volatile var soundEnabled: Boolean = true
@@ -28,12 +29,17 @@ object Settings {
     }
 
     fun setSoundEnabled(v: Boolean) {
-        soundEnabled = v
-        prefs.edit().putBoolean("sound_enabled", v).apply()
+        val resolved = soundEnabledInterceptor?.invoke(v) ?: v
+        soundEnabled = resolved
+        prefs.edit().putBoolean("sound_enabled", resolved).apply()
     }
 
     fun setHapticsEnabled(v: Boolean) {
         hapticsEnabled = v
         prefs.edit().putBoolean("haptics_enabled", v).apply()
+    }
+
+    fun setSoundEnabledInterceptor(interceptor: ((Boolean) -> Boolean)?) {
+        soundEnabledInterceptor = interceptor
     }
 }

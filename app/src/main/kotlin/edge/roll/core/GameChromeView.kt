@@ -25,6 +25,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import edge.roll.R
+import java.util.WeakHashMap
 
 /**
  * The game's HUD overlay: score + best at the top, animated center banners,
@@ -107,6 +108,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
 
     private var bestPulse: ValueAnimator? = null
     private val topBox = LinearLayout(activity)
+    private val soundTogglePainters = WeakHashMap<ImageView, () -> Unit>()
 
     private var runBegun = false   // set once the first move hides the pre-run options
 
@@ -123,6 +125,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
         label: String,
         isOn: () -> Boolean,
         set: (Boolean) -> Unit,
+        tracksSoundState: Boolean = false,
         focusable: Boolean = false,
     ): ImageView = ImageView(activity).apply {
         val pad = dp(11f)
@@ -151,6 +154,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
             }
             contentDescription = "$label ${if (on) "on" else "off"}"
         }
+        if (tracksSoundState) soundTogglePainters[this] = ::paint
         paint()
         setOnClickListener {
             set(!isOn())
@@ -164,7 +168,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
 
     private val soundBtn = makeToggle(
         R.drawable.ic_sound_on, R.drawable.ic_sound_off, activity.getString(R.string.cd_sound),
-        { Settings.soundEnabled }, { Settings.setSoundEnabled(it) },
+        { Settings.soundEnabled }, { Settings.setSoundEnabled(it) }, tracksSoundState = true,
     )
     private val hapticBtn = makeToggle(
         R.drawable.ic_haptic_on, R.drawable.ic_haptic_off, activity.getString(R.string.cd_haptics),
@@ -283,6 +287,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
     /** Fade the bottom-left sound / vibration chips in (phone launch and while paused). No-op on TV. */
     private fun showToggles() {
         if (isTv) return
+        refreshSoundToggles()
         toggleBox.animate().cancel()
         toggleBox.alpha = 0f
         toggleBox.visibility = VISIBLE
@@ -537,7 +542,8 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
             val size = dp(52f)
             row.addView(makeToggle(
                 R.drawable.ic_sound_on, R.drawable.ic_sound_off, activity.getString(R.string.cd_sound),
-                { Settings.soundEnabled }, { Settings.setSoundEnabled(it) }, focusable = true,
+                { Settings.soundEnabled }, { Settings.setSoundEnabled(it) },
+                tracksSoundState = true, focusable = true,
             ), LinearLayout.LayoutParams(size, size))
             row.addView(makeToggle(
                 R.drawable.ic_haptic_on, R.drawable.ic_haptic_off, activity.getString(R.string.cd_haptics),
@@ -552,6 +558,11 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
             // Phone: tap the scrim to resume; the bottom-left touch chips fade in above it.
             showToggles()
         }
+    }
+
+    /** Repaint every live sound toggle after external sound state changes (e.g., audio-focus loss). */
+    fun refreshSoundToggles() {
+        for (paint in soundTogglePainters.values.toList()) paint.invoke()
     }
 
     /** Begin resuming: dismiss the scrim, run the "2 1" countdown, then unfreeze. */
