@@ -45,7 +45,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
     private val isTv = activity.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
 
     private val scoreText = TextView(activity).apply {
-        textSize = 52f
+        textSize = if(Settings.isAutomotive) 64f else 52f
         setTextColor(Color.WHITE)
         typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         gravity = Gravity.CENTER_HORIZONTAL
@@ -54,14 +54,14 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
     }
 
     private val bestText = TextView(activity).apply {
-        textSize = 15f
+        textSize = if (Settings.isAutomotive) 24f else 15f
         setTextColor(Palette.withAlpha(Color.WHITE, 170))
         typeface = Typeface.DEFAULT_BOLD
         gravity = Gravity.CENTER_HORIZONTAL
     }
 
     private val bannerText = TextView(activity).apply {
-        textSize = 40f
+        textSize = if (Settings.isAutomotive) 64f else 40f
         setTextColor(accent)
         typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         gravity = Gravity.CENTER
@@ -86,7 +86,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
     }
 
     private val countdownText = TextView(activity).apply {
-        textSize = 96f
+        textSize = if (Settings.isAutomotive) 128f else 96f
         setTextColor(Color.WHITE)
         typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         gravity = Gravity.CENTER
@@ -174,9 +174,15 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         alpha = 0f   // fades in at launch (see init) and when paused
-        val size = dp(46f)
+        val size = if (Settings.isAutomotive) {
+            dp(96f)
+        } else {
+            dp(46f)
+        }
         addView(soundBtn, LinearLayout.LayoutParams(size, size))
-        addView(hapticBtn, LinearLayout.LayoutParams(size, size).apply { leftMargin = dp(12f) })
+        if (!Settings.isAutomotive) {
+            addView(hapticBtn, LinearLayout.LayoutParams(size, size).apply { leftMargin = dp(12f) })
+        }
     }
 
     init {
@@ -195,7 +201,12 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
         addView(bannerText, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.CENTER
         })
-        addView(pauseBtn, LayoutParams(dp(41.4f), dp(41.4f)).apply {   // 10% smaller than 46dp
+        val size = if (Settings.isAutomotive) {
+            dp(96f)
+        } else {
+            dp(41.4f)
+        }
+        addView(pauseBtn, LayoutParams(size, size).apply {   // 10% smaller than 46dp
             gravity = Gravity.TOP or Gravity.START
             topMargin = dp(16f); leftMargin = dp(16f)                  // equidistant from top & left edges
         })
@@ -336,7 +347,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
      */
     private fun pillButton(label: String, filled: Boolean, onClick: () -> Unit) = TextView(activity).apply {
         text = label
-        textSize = 19f
+        textSize = if (Settings.isAutomotive) 32f else 19f
         typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         gravity = Gravity.CENTER
         setPadding(dp(36f), dp(13f), dp(36f), dp(13f))
@@ -392,7 +403,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
 
         card.addView(TextView(activity).apply {
             text = "GAME OVER"
-            textSize = 26f
+            textSize = if (Settings.isAutomotive) 32f else 26f
             setTextColor(accent)
             typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -400,7 +411,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
 
         card.addView(TextView(activity).apply {
             text = score.toString()
-            textSize = 58f
+            textSize = if (Settings.isAutomotive) 72f else 58f
             setTextColor(Color.WHITE)
             typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -409,7 +420,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
         })
 
         val bestLabel = TextView(activity).apply {
-            textSize = 17f
+            textSize = if (Settings.isAutomotive) 32f else 17f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             if (isNewBest) {
@@ -453,7 +464,9 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
                 topMargin = dp(10f)
             })
 
-        scrim.addView(card, LayoutParams(dp(290f), LayoutParams.WRAP_CONTENT).apply {
+        val size = if (Settings.isAutomotive) dp(360f) else dp(290f)
+
+        scrim.addView(card, LayoutParams(size, LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.CENTER
         })
         card.translationY = dp(60f).toFloat()
@@ -488,14 +501,14 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
         }
         box.addView(TextView(activity).apply {
             text = "PAUSED"
-            textSize = 32f
+            textSize = if (Settings.isAutomotive) 48f else 32f
             setTextColor(accent)
             typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
             gravity = Gravity.CENTER
         })
         box.addView(TextView(activity).apply {
             text = if (isTv) "press OK to resume" else "tap anywhere to resume"
-            textSize = 15f
+            textSize = if (Settings.isAutomotive) 32f else 15f
             setTextColor(Palette.withAlpha(Color.WHITE, 170))
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER

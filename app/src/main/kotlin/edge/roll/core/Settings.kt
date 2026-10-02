@@ -2,6 +2,7 @@ package edge.roll.core
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 
 /** Persistent player-facing options. Safe to read from the GL thread (values are @Volatile). */
 object Settings {
@@ -15,10 +16,15 @@ object Settings {
     @Volatile var hapticsEnabled: Boolean = true
         private set
 
+    /** True on Android Automotive devices; used to disable haptics UX and runtime vibration. */
+    @Volatile var isAutomotive: Boolean = false
+        private set
+
     fun init(ctx: Context) {
         prefs = ctx.applicationContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
         soundEnabled = prefs.getBoolean("sound_enabled", true)
         hapticsEnabled = prefs.getBoolean("haptics_enabled", true)
+        isAutomotive = ctx.packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
     }
 
     fun setSoundEnabled(v: Boolean) {
