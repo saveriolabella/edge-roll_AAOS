@@ -60,6 +60,10 @@ object SoundFx {
         pool?.play(id, v, v, 1, 0, rate.coerceIn(0.5f, 2f))
     }
 
+    fun pauseAll() {
+        pool?.autoPause()
+    }
+
     // ------------------------------------------------------------------ synth
 
     private fun synthAll(): List<Pair<String, ShortArray>> = listOf(

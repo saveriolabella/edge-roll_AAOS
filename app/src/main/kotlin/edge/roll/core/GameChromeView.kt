@@ -292,6 +292,7 @@ class GameChromeView(private val activity: Activity, private val accent: Int) : 
 
     /** Fade the sound / vibration / slow-mo chips out (run start and on resume). */
     private fun hideToggles() {
+        if (Settings.isAutomotive) return // automotive always shows the toggles (no haptics, no slow-mo)
         toggleBox.animate().cancel()
         toggleBox.animate().alpha(0f).setDuration(220)
             .withEndAction { toggleBox.visibility = GONE }.start()

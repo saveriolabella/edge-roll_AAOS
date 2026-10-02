@@ -1,5 +1,9 @@
 package edge.roll
 
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.KeyEvent
@@ -10,6 +14,8 @@ import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
 import edge.roll.core.GameChromeView
 import edge.roll.core.GameHostSession
 import edge.roll.core.Scores
+import edge.roll.core.Settings
+import edge.roll.core.SoundFx
 import edge.roll.game.EdgeRoll
 
 /** Single-game launcher host: builds the shared HUD over the libGDX surface and runs Edge Roll. */
@@ -17,6 +23,19 @@ class GameActivity : AndroidApplication() {
 
     private lateinit var chrome: GameChromeView
     private val isTv by lazy { packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) }
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    private var hasAudioFocus = false
+    private val audioFocusRequest by lazy {
+        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build(),
+            )
+            .setOnAudioFocusChangeListener { _ -> }
+            .build()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +87,17 @@ class GameActivity : AndroidApplication() {
         gameView.requestFocus()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (Settings.soundEnabled) requestAudioFocus()
+    }
+
+    override fun onPause() {
+        SoundFx.pauseAll()
+        abandonAudioFocus()
+        super.onPause()
+    }
+
     /**
      * TV remote / gamepad system keys. Directional + select keys fall through to libGDX
      * (gameplay) or, on game-over / while paused, to the focused HUD buttons.
@@ -91,6 +121,19 @@ class GameActivity : AndroidApplication() {
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun requestAudioFocus() {
+        if (hasAudioFocus) return
+        val result = audioManager.requestAudioFocus(audioFocusRequest)
+        hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        if (!hasAudioFocus) Settings.setSoundEnabled(false)
+    }
+
+    private fun abandonAudioFocus() {
+        if (!hasAudioFocus) return
+        audioManager.abandonAudioFocusRequest(audioFocusRequest)
+        hasAudioFocus = false
     }
 
     private companion object {
